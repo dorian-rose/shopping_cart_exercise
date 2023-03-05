@@ -3,12 +3,62 @@
   padding: 0;
   box-sizing: border-box;
   text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
+main {
   margin: 40px;
 }
-/* styles */
+/* Header and headings */
+header {
+  background-image: url(resources/banner.jpeg);
+  padding: 50px;
+  color: white;
+  font-size: 50px;
+}
+h1 {
+  text-align: start;
+  margin-left: 60px;
+}
+
+/* shopping cart icon */
+i.cart-icon {
+  font-size: 30px;
+  position: fixed;
+  top: 135px;
+  right: 10%;
+}
+
+/* shopping cart pop up list */
+#shopping-cart-div {
+  padding: 10px;
+  border: #bfbdbd solid 1px;
+  background-color: #eeeeee;
+  position: fixed;
+  top: 135px;
+  right: 15%;
+}
+#shopping-cart-div img {
+  max-width: 40px;
+}
+#shopping-cart-div table {
+  background-color: white;
+}
+#shopping-cart-div td,
+th {
+  padding: 5px 15px;
+  text-align: start;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.invisible {
+  display: none;
+}
+.appear {
+  display: block;
+}
+
+/* Print all items first page */
 #print-items-page {
   display: grid;
   margin: 40px;
@@ -16,7 +66,11 @@ body {
 }
 article {
   box-shadow: 5px 5px 10px -3px rgba(0, 0, 0, 0.75);
-  margin: 10px;
+  margin: 20px;
+  transition: ease-in-out, 0.2s;
+}
+article:hover {
+  transform: translate(1%);
 }
 
 article img {
@@ -34,6 +88,7 @@ p {
   font-weight: bold;
 }
 
+/*stars */
 .star-div {
   margin: 10px;
 }
@@ -41,7 +96,7 @@ p {
 .star-div img {
   width: 20px;
 }
-
+/* button */
 .add-item-button {
   margin: 20px;
   color: white;
@@ -54,6 +109,7 @@ p {
   cursor: pointer;
 }
 
+/* page number/page change buttons  */
 #page-number-div button {
   margin: 3px;
   padding: 3px;

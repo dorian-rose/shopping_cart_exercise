@@ -1,19 +1,34 @@
 //DOM variables
 const printItemsPage = document.querySelector("#print-items-page");
 const pageNumberDiv = document.querySelector("#page-number-div");
+const shoppingCartDiv = document.querySelector("#shopping-cart-div");
 const fragment = document.createDocumentFragment();
 //other variables
 const limitPerPage = 20;
 let pageNumbers = {};
+let cartArray = JSON.parse(localStorage.getItem("productsInCart")) || [];
+
+//EVENTLISTENERS
 //event listeners
 document.addEventListener("click", ({ target }) => {
+  //click on page number to go to that page
   if (target.matches(".page-number-button")) {
     selectPage(target.textContent);
   }
+  //click on page forward or back to go to next or previous page
   if (target.matches(".forward-button") || target.matches(".back-button")) {
     const action = target.classList.value;
     shiftPage(action);
   }
+  //click on cart icon to make shopping cart appear
+  if (target.matches(".cart-icon")) {
+    shoppingCartDiv.classList.toggle("appear");
+  }
+  //click on an add to cart button to add it to cart
+  if (target.matches(".add-item-button")) {
+    addToCartList(target.id);
+  }
+  //end
 });
 
 //FUNCTIONS
@@ -42,13 +57,15 @@ const shiftPage = (action) => {
 };
 
 //FETCH function, retrieves information for all uses
-const getData = async (skip) => {
+const getData = async (skip, id) => {
   let url;
   try {
-    if (!skip) {
+    if (!skip && !id) {
       url = `https://dummyjson.com/products?limit=${limitPerPage}`;
-    } else {
+    } else if (skip) {
       url = `https://dummyjson.com/products?limit=${limitPerPage}&skip=${skip}`;
+    } else if (id) {
+      url = `https://dummyjson.com/products/${id}`;
     }
     let request = await fetch(url);
     if (request.ok) {
@@ -93,6 +110,7 @@ const printAllItems = async (skip) => {
       const addItemButton = document.createElement("BUTTON");
       addItemButton.textContent = "Add item to cart";
       addItemButton.classList.add("add-item-button");
+      addItemButton.setAttribute("id", item.id);
       productArticle.append(
         itemImg,
         itemTitle,
@@ -114,12 +132,12 @@ const printStars = (rating) => {
 
   for (let i = 0; i < numGoldStars; i++) {
     let goldStar = document.createElement("IMG");
-    goldStar.src = "stars/star1.png";
+    goldStar.src = "resources/star1.png";
     starArray.push(goldStar);
   }
   for (let i = 0; i < numGreyStars; i++) {
     let greyStar = document.createElement("IMG");
-    greyStar.src = "stars/star2.png";
+    greyStar.src = "resources/star2.png";
     starArray.push(greyStar);
   }
   return starArray;
@@ -186,5 +204,71 @@ const printPageButtons = async (skip) => {
   }
   pageNumberDiv.append(backButton, fragment, forwardButton);
 };
+
+const addToCartList = async (id) => {
+  const { response, ok } = await getData(null, id);
+  if (ok) {
+    const newData = { count: 1, subtotal: response.price };
+    console.log(response.price);
+    const product = { ...response, ...newData };
+    const productAlready = cartArray.find((item) => item.id == product.id);
+
+    if (!productAlready) {
+      cartArray.push(product);
+      setLocal();
+    } else {
+      productAlready.count++;
+      productAlready.subtotal = productAlready.price * productAlready.count;
+      setLocal();
+    }
+    printShoppingCart();
+  } else {
+    printError(error);
+  }
+};
+
+//set  and get local
+setLocal = () => {
+  return localStorage.setItem("productsInCart", JSON.stringify(cartArray));
+};
+getLocal = () => {
+  return JSON.parse(localStorage.getItem("productsInCart")) || [];
+};
+
+const printShoppingCart = () => {
+  const headings = ["Image", "Product", "Price", "Quantity", "Subtotal"];
+  const cartTable = document.createElement("TABLE");
+  const headRow = document.createElement("TR");
+
+  headings.forEach((element) => {
+    const head = document.createElement("TH");
+    head.textContent = element;
+    headRow.append(head);
+  });
+  cartArray.forEach((item) => {
+    const productRow = document.createElement("TR");
+    const data1 = document.createElement("TD");
+    const cartImgDiv = document.createElement("DIV");
+    const cartItemImg = document.createElement("IMG");
+    cartItemImg.src = item.thumbnail;
+    cartImgDiv.append(cartItemImg);
+    data1.append(cartImgDiv);
+    const data2 = document.createElement("TD");
+    data2.textContent = item.title;
+    const data3 = document.createElement("TD");
+    data3.textContent = `$${item.price}`;
+    const data4 = document.createElement("TD");
+    data4.textContent = item.count;
+    const data5 = document.createElement("TD");
+    data5.textContent = item.subtotal;
+    productRow.append(data1, data2, data3, data4, data5);
+    fragment.append(productRow);
+    //add
+  });
+  cartTable.append(headRow, fragment);
+  shoppingCartDiv.append(cartTable);
+  // cartItemImg.src = "";
+};
+printShoppingCart();
 printAllItems();
 printPageButtons();
