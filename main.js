@@ -1,7 +1,11 @@
 //DOM variables
+const printErrorDiv = document.querySelector("#print-error-div");
 const printItemsPage = document.querySelector("#print-items-page");
 const pageNumberDiv = document.querySelector("#page-number-div");
 const shoppingCartDiv = document.querySelector("#shopping-cart-div");
+const itemAdded = document.querySelector(".item-added");
+const finaliseShoppingDiv = document.querySelector("#finalise-shopping-div");
+const productDetails = document.querySelector("#product-details");
 const fragment = document.createDocumentFragment();
 //other variables
 const limitPerPage = 20;
@@ -25,13 +29,57 @@ document.addEventListener("click", ({ target }) => {
     shoppingCartDiv.classList.toggle("appear");
   }
   //click on an add to cart button to add it to cart
-  if (target.matches(".add-item-button")) {
+  if (
+    target.matches(".add-item-button") ||
+    target.matches(".increase-button")
+  ) {
     addToCartList(target.id);
+  }
+  //click on decrease button to remove/decrease item
+  if (target.matches(".decrease-button")) {
+    removeFromCart(target.id);
+  }
+  //empty all button on pop up cart list
+  if (target.matches(".empty-cart-button")) {
+    emptyCart();
+  }
+  //go to purchase page
+  if (target.matches(".purchase-button")) {
+    if (cartArray.length > 0) {
+      location.href = "purchase.html?purchase";
+    } else {
+      printError("Nothing in cart");
+    }
+  }
+  //finalise purchase notification
+  if (target.matches(".finalise-button")) {
+    purchaseComplete();
+  }
+  //click on item to see large photo and more info
+  if (target.matches(".product")) {
+    location.href = `product.html?id=${target.id}`;
+  }
+  //go back to home page
+  if (target.matches(".back-home-button")) {
+    location.href = "index.html";
   }
   //end
 });
 
 //FUNCTIONS
+//manage errors
+const printError = (error) => {
+  printErrorDiv.innerHTML = "";
+  const errorPara = document.createElement("P");
+  errorPara.classList.add("error-para");
+  errorPara.textContent = error;
+  if (error != "Nothing in cart") {
+    printErrorDiv.append(errorPara);
+  } else {
+    shoppingCartDiv.append(errorPara);
+  }
+};
+
 //Change to specific page number
 const selectPage = (page) => {
   const skip = (page - 1) * limitPerPage;
@@ -72,10 +120,13 @@ const getData = async (skip, id) => {
       let response = await request.json();
       return { ok: true, response };
     } else {
-      throw {
-        ok: false,
-        msg: "Unable to load items",
-      };
+      if (!skip && !id) {
+        throw new Error("Unable to load items");
+      } else if (skip) {
+        throw new Error("Unable to find page numbers");
+      } else if (id) {
+        throw new Error(`Unable to find product with id ${id}`);
+      }
     }
   } catch (error) {
     return error;
@@ -84,7 +135,8 @@ const getData = async (skip, id) => {
 
 //print all items on home page
 const printAllItems = async (skip) => {
-  const { response, ok } = await getData(skip);
+  const data = await getData(skip);
+  const { response, ok } = data;
   if (ok) {
     const printArray = response.products;
     printArray.forEach((item) => {
@@ -93,6 +145,8 @@ const printAllItems = async (skip) => {
       const itemImg = document.createElement("IMG");
       itemImg.src = item.images[0];
       itemImg.alt = item.title;
+      itemImg.classList.add("product");
+      itemImg.setAttribute("id", item.id);
       itemImgDiv.append(itemImg);
       const itemInfoDiv = document.createElement("DIV");
       itemInfoDiv.classList.add("item-info");
@@ -121,6 +175,8 @@ const printAllItems = async (skip) => {
       fragment.append(productArticle);
     });
     printItemsPage.append(fragment);
+  } else {
+    printError(data);
   }
 };
 
@@ -144,72 +200,83 @@ const printStars = (rating) => {
 };
 
 const getPageNumbers = async (skipPages) => {
-  const { response, ok } = await getData(skipPages);
-  const { skip, total } = response;
-  pageNumbers = {
-    pageNumber: skip / limitPerPage + 1,
-    numOfPages: total / limitPerPage,
-  };
-  return pageNumbers;
+  const data = await getData(skipPages);
+  const { response, ok } = data;
+  if (ok) {
+    const { skip, total } = response;
+    pageNumbers = {
+      pageNumber: skip / limitPerPage + 1,
+      numOfPages: total / limitPerPage,
+    };
+    return pageNumbers;
+  } else {
+    return data;
+  }
 };
 
 const printPageButtons = async (skip) => {
-  let { pageNumber, numOfPages } = await getPageNumbers(skip);
-  //forward and back buttons
-  const forwardButton = document.createElement("BUTTON");
-  forwardButton.textContent = ">";
-  if (pageNumber < numOfPages) {
-    forwardButton.classList.add("forward-button");
-  } else {
-    forwardButton.classList.add("disactivated");
-  }
-  const backButton = document.createElement("BUTTON");
-  backButton.textContent = "<";
-  if (pageNumber > 1) {
-    backButton.classList.add("back-button");
-  } else {
-    backButton.classList.add("disactivated");
-  }
-  //page buttons
-  if (pageNumber <= 2) {
-    for (let i = 1; i < pageNumber + 2; i++) {
-      let pageNumberButton = document.createElement("BUTTON");
-      pageNumberButton.textContent = i;
-      pageNumberButton.classList.add("page-number-button");
-      if (i == pageNumber) {
-        pageNumberButton.classList.add("active");
-      }
-      fragment.append(pageNumberButton);
+  const pageData = await getPageNumbers(skip);
+  let { pageNumber, numOfPages } = pageData;
+  if (pageNumber) {
+    //forward and back buttons
+    const forwardButton = document.createElement("BUTTON");
+    forwardButton.textContent = ">";
+    if (pageNumber < numOfPages) {
+      forwardButton.classList.add("forward-button");
+    } else {
+      forwardButton.classList.add("disactivated");
     }
-  } else if (pageNumber > 2 && pageNumber < numOfPages - 1) {
-    for (let i = pageNumber - 2; i < pageNumber + 2; i++) {
-      let pageNumberButton = document.createElement("BUTTON");
-      pageNumberButton.textContent = i;
-      pageNumberButton.classList.add("page-number-button");
-      if (i == pageNumber) {
-        pageNumberButton.classList.add("active");
-      }
-      fragment.append(pageNumberButton);
+    const backButton = document.createElement("BUTTON");
+    backButton.textContent = "<";
+    if (pageNumber > 1) {
+      backButton.classList.add("back-button");
+    } else {
+      backButton.classList.add("disactivated");
     }
+    //page buttons
+    if (pageNumber <= 2) {
+      for (let i = 1; i < pageNumber + 2; i++) {
+        let pageNumberButton = document.createElement("BUTTON");
+        pageNumberButton.textContent = i;
+        pageNumberButton.classList.add("page-number-button");
+        if (i == pageNumber) {
+          pageNumberButton.classList.add("active");
+        }
+        fragment.append(pageNumberButton);
+      }
+    } else if (pageNumber > 2 && pageNumber < numOfPages - 1) {
+      for (let i = pageNumber - 2; i < pageNumber + 2; i++) {
+        let pageNumberButton = document.createElement("BUTTON");
+        pageNumberButton.textContent = i;
+        pageNumberButton.classList.add("page-number-button");
+        if (i == pageNumber) {
+          pageNumberButton.classList.add("active");
+        }
+        fragment.append(pageNumberButton);
+      }
+    } else {
+      for (let i = pageNumber - 2; i <= numOfPages; i++) {
+        let pageNumberButton = document.createElement("BUTTON");
+        pageNumberButton.textContent = i;
+        pageNumberButton.classList.add("page-number-button");
+        if (i == pageNumber) {
+          pageNumberButton.classList.add("active");
+        }
+        fragment.append(pageNumberButton);
+      }
+    }
+    pageNumberDiv.append(backButton, fragment, forwardButton);
   } else {
-    for (let i = pageNumber - 2; i <= numOfPages; i++) {
-      let pageNumberButton = document.createElement("BUTTON");
-      pageNumberButton.textContent = i;
-      pageNumberButton.classList.add("page-number-button");
-      if (i == pageNumber) {
-        pageNumberButton.classList.add("active");
-      }
-      fragment.append(pageNumberButton);
-    }
+    printError(pageData);
   }
-  pageNumberDiv.append(backButton, fragment, forwardButton);
 };
 
 const addToCartList = async (id) => {
-  const { response, ok } = await getData(null, id);
+  const data = await getData(null, id);
+  const { response, ok } = data;
   if (ok) {
+    shoppingCartDiv.innerHTML = "";
     const newData = { count: 1, subtotal: response.price };
-    console.log(response.price);
     const product = { ...response, ...newData };
     const productAlready = cartArray.find((item) => item.id == product.id);
 
@@ -221,12 +288,50 @@ const addToCartList = async (id) => {
       productAlready.subtotal = productAlready.price * productAlready.count;
       setLocal();
     }
+    itemAddedMessage();
     printShoppingCart();
   } else {
-    printError(error);
+    printError(data);
   }
 };
 
+const itemAddedMessage = () => {
+  const itemAddedMessage = document.createElement("P");
+  itemAddedMessage.textContent = "Item added successfully";
+  itemAdded.append(itemAddedMessage);
+  setTimeout(deleteItemAddedMessage, 2000);
+};
+
+const deleteItemAddedMessage = () => {
+  itemAdded.innerHTML = "";
+};
+
+const removeFromCart = (id) => {
+  if (shoppingCartDiv) {
+    shoppingCartDiv.innerHTML = "";
+  } else {
+    finaliseShoppingDiv.innerHTML = "";
+  }
+
+  const productFound = cartArray.find((item) => item.id == id);
+  if (productFound.count > 1) {
+    productFound.count--;
+    productFound.subtotal -= productFound.price;
+    setLocal();
+  } else {
+    console.log(productFound.count > 1);
+    const elementIndex = cartArray.findIndex((item) => item.id == id);
+    if (elementIndex != -1) {
+      cartArray.splice(elementIndex, 1);
+      setLocal();
+    }
+  }
+  if (shoppingCartDiv) {
+    printShoppingCart();
+  } else {
+    printPurchasePage();
+  }
+};
 //set  and get local
 setLocal = () => {
   return localStorage.setItem("productsInCart", JSON.stringify(cartArray));
@@ -235,40 +340,150 @@ getLocal = () => {
   return JSON.parse(localStorage.getItem("productsInCart")) || [];
 };
 
-const printShoppingCart = () => {
+const prepareShoppingCart = () => {
+  let total = 0;
   const headings = ["Image", "Product", "Price", "Quantity", "Subtotal"];
   const cartTable = document.createElement("TABLE");
   const headRow = document.createElement("TR");
-
+  //print table headings
   headings.forEach((element) => {
     const head = document.createElement("TH");
     head.textContent = element;
     headRow.append(head);
   });
+  //print rest of table
   cartArray.forEach((item) => {
     const productRow = document.createElement("TR");
     const data1 = document.createElement("TD");
     const cartImgDiv = document.createElement("DIV");
     const cartItemImg = document.createElement("IMG");
-    cartItemImg.src = item.thumbnail;
+    cartItemImg.src = item.images[0];
     cartImgDiv.append(cartItemImg);
     data1.append(cartImgDiv);
     const data2 = document.createElement("TD");
     data2.textContent = item.title;
     const data3 = document.createElement("TD");
-    data3.textContent = `$${item.price}`;
+    data3.textContent = `$ ${item.price}`;
     const data4 = document.createElement("TD");
-    data4.textContent = item.count;
+    data4.innerHTML = `<i class="fa-solid fa-square-plus increase-button" id="${item.id}"></i> ${item.count} <i class="fa-solid fa-square-minus decrease-button" id="${item.id}"></i>`;
     const data5 = document.createElement("TD");
-    data5.textContent = item.subtotal;
+    data5.textContent = `$ ${item.subtotal}`;
     productRow.append(data1, data2, data3, data4, data5);
     fragment.append(productRow);
-    //add
+    total += item.subtotal;
   });
-  cartTable.append(headRow, fragment);
-  shoppingCartDiv.append(cartTable);
-  // cartItemImg.src = "";
+  // print total;
+  const totalRow = document.createElement("TR");
+  const printTotal = document.createElement("TD");
+  printTotal.textContent = `TOTAL: $ ${total}`;
+  printTotal.setAttribute("colspan", "5");
+  printTotal.classList.add("total");
+  totalRow.append(printTotal);
+  cartTable.append(headRow, fragment, totalRow);
+  fragment.append(cartTable);
+  return fragment;
 };
-printShoppingCart();
-printAllItems();
-printPageButtons();
+
+const printShoppingCart = () => {
+  //print buttons
+  const emptyCartButton = document.createElement("BUTTON");
+  emptyCartButton.textContent = "Empty Cart";
+  emptyCartButton.classList.add("empty-cart-button");
+  const purchaseButton = document.createElement("BUTTON");
+  purchaseButton.textContent = "Purchase";
+  purchaseButton.classList.add("purchase-button");
+  shoppingCartDiv.append(
+    prepareShoppingCart(),
+    emptyCartButton,
+    purchaseButton
+  );
+};
+
+const printPurchasePage = () => {
+  const finaliseButton = document.createElement("BUTTON");
+  finaliseButton.textContent = "Finalise Purchase";
+  finaliseButton.classList.add("finalise-button");
+  finaliseShoppingDiv.append(prepareShoppingCart(), finaliseButton);
+};
+
+const purchaseComplete = () => {
+  finaliseShoppingDiv.innerHTML = "";
+  const finaliseMessage = document.createElement("P");
+  finaliseMessage.textContent = "Purcase complete";
+  finaliseShoppingDiv.append(finaliseMessage);
+};
+
+const emptyCart = () => {
+  shoppingCartDiv.innerHTML = "";
+  localStorage.clear();
+  cartArray = [];
+  printShoppingCart();
+};
+
+const showProduct = async (id) => {
+  const data = await getData(null, id);
+  const { response, ok } = data;
+  if (ok) {
+    const itemImgDiv = document.createElement("DIV");
+    itemImgDiv.classList.add("product-photos");
+    response.images.forEach((element) => {
+      const itemImg = document.createElement("IMG");
+      itemImg.src = element;
+      itemImg.alt = response.title;
+      itemImgDiv.append(itemImg);
+      fragment.append(itemImgDiv);
+    });
+
+    const itemInfoDiv = document.createElement("DIV");
+    itemInfoDiv.classList.add("item-info");
+    const itemTitle = document.createElement("H4");
+    itemTitle.textContent = response.title;
+    const itemPrice = document.createElement("P");
+    itemPrice.textContent = `$${response.price}`;
+    const itemDescript = document.createElement("P");
+    itemDescript.textContent = response.description;
+    itemDescript.classList.add("product-details");
+    const stock = document.createElement("P");
+    stock.classList.add("product-details");
+    if (response.stock > 0) {
+      stock.textContent = `In stock: ${response.stock} remaining`;
+    } else {
+      stock.textContent = "Out of stock";
+    }
+    itemInfoDiv.append(itemTitle, itemPrice, itemDescript, stock);
+    const starDiv = document.createElement("DIV");
+    starDiv.classList.add("star-div");
+    const starArray = printStars(response.rating);
+    starArray.forEach((element) => {
+      starDiv.append(element);
+    });
+    const backToHomeButton = document.createElement("BUTTON");
+    backToHomeButton.innerHTML = `<i class="fa-solid fa-circle-arrow-left"></i> Back`;
+    backToHomeButton.classList.add("back-home-button");
+    backToHomeButton.setAttribute("id", response.id);
+    productDetails.append(fragment, itemInfoDiv, starDiv, backToHomeButton);
+  } else {
+    printError(data);
+  }
+};
+
+const init = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+
+  if (!window.location.search || urlParams.has("home")) {
+    printShoppingCart();
+    printAllItems();
+    printPageButtons();
+  } else if (urlParams.has("purchase")) {
+    printPurchasePage();
+  } else if (urlParams.has("id")) {
+    const id = urlParams.get("id");
+    showProduct(id);
+  } //else if (urlParams.has("skip")) {
+  //   const skip = urlParams.get("skip");
+  //   printShoppingCart();
+  //   printAllItems(skip);
+  //   printPageButtons();
+  // }
+};
+init();
