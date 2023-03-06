@@ -11,7 +11,7 @@ main {
 }
 /* Header and headings */
 header {
-  background-image: url(resources/banner.jpeg);
+  background-image: url(/resources/banner.jpeg);
   padding: 50px;
   color: white;
   font-size: 50px;
