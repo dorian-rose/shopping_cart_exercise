@@ -493,6 +493,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return JSON.parse(localStorage.getItem("productsInCart")) || [];
   };
 
+  const helloWorld = () => {
+    console.log("hello world");
+  };
+
   //INIT
   const init = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -506,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (urlString.includes("product")) {
       const id = urlParams.get("id");
       showProduct(id);
+      helloWorld();
     }
   };
   init();
