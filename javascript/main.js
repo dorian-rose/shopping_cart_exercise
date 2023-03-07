@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     //go to purchase page//error if nothing in cart
     if (target.matches(".purchase-button")) {
       if (cartArray.length > 0) {
-        location.href = "../secondaryPages/purchase.html?purchase";
+        location.href = "../secondaryPages/purchase.html";
       } else {
         printError("Nothing in cart");
       }
@@ -496,14 +496,14 @@ document.addEventListener("DOMContentLoaded", () => {
   //INIT
   const init = () => {
     const urlParams = new URLSearchParams(window.location.search);
-
-    if (!window.location.search || urlParams.has("home")) {
+    const urlString = document.location.toString();
+    if (urlString.includes("index")) {
       printShoppingCart();
       printAllItems();
       printPageButtons();
-    } else if (urlParams.has("purchase")) {
+    } else if (urlString.includes("purchase")) {
       printPurchasePage();
-    } else if (urlParams.has("id")) {
+    } else if (urlString.includes("product")) {
       const id = urlParams.get("id");
       showProduct(id);
     }
